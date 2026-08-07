@@ -63,6 +63,17 @@ def get_expense():
 
     return jsonify([expense.to_dict() for expense in expenses]), 200
 
+@app.route('/api/expenses/<int:expense_id>', methods=['GET'])
+@jwt_required()
+def get_single_expense(expense_id):
+    user_id = int(get_jwt_identity())
+    expense = db.get_or_404(Expense, expense_id)
+
+    if expense.user_id != user_id:
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    return jsonify(expense.to_dict()), 200 
+
 # POST EXPENSE
 @app.route('/api/expenses', methods=["POST"])
 @jwt_required()
