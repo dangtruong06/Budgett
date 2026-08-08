@@ -13,7 +13,7 @@ function Navbar() {
 
     return (
         <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
-            <Link to="/" className="text-lg font-medium text-emerald-700 lowercase">
+            <Link to={token ? '/dashboard' : '/'} className="text-lg font-medium text-emerald-700 lowercase">
                 budgett
             </Link>
             <div className="flex items-center gap-2">
