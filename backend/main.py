@@ -17,18 +17,22 @@ CORS(app)
 
 @app.route('/')
 def index(): 
-    return jsonify({'message': 'Budgett API running!'})
+    return jsonify({'message': 'Budgett API running!'}), 200
 
 @app.route('/api/register', methods=["POST"])
 def register():
     response = request.get_json()
-    email = response.get('email')
-    password = response.get('password')
+    email = response.get('email', '').strip()
+    password = response.get('password', '').strip()
+
+    #check empty submit
+    if not email or not password:
+        return jsonify({"error": "empty email or password"}), 400
 
     #validate unique email
     email_exists = db.session.execute(db.select(User).where(User.email == email)).scalar()
     if email_exists:
-        return jsonify({'error': 'resource already exists'}), 409
+        return jsonify({'error': 'email already exists'}), 409
     
     # hash password, create new user
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -41,12 +45,12 @@ def register():
 @app.route('/api/login', methods=["POST"])
 def login():
     response = request.get_json()
-    input_email = response.get('email')
-    input_password = response.get('password').encode('utf-8')
+    input_email = response.get('email', '').strip()
+    input_password = response.get('password', '').strip()
 
     user = db.session.execute(db.select(User).where(User.email == input_email)).scalar()
 
-    if user and bcrypt.checkpw(input_password, user.password_hash.encode('utf-8')):
+    if user and bcrypt.checkpw(input_password.encode('utf-8'), user.password_hash.encode('utf-8')):
         access_token = create_access_token(identity=str(user.id))
         return jsonify({'access_token': access_token}), 200
     else:

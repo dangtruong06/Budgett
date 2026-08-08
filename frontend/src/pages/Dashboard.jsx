@@ -30,7 +30,7 @@ function Dashboard(){
 
     return (
         <div>
-            <h2>Your expenses</h2>
+            <h2 className="text-2xl font-bold text-blue-600">Your expenses</h2>
             <ul>
                 {expenses.map((expense) => (
                     <li key={expense.id}>
