@@ -12,7 +12,7 @@ function Dashboard(){
         const fetchExpense = async () => {
             try{
                 const response = await api.get('/expenses');
-                const sorted = [...response.data].sort(
+                const sorted = [...response.data.expenses].sort(
                     (a, b) => new Date(b.created_at) - new Date(a.created_at)
                 );
                 setExpenses(sorted);

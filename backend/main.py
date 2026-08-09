@@ -7,6 +7,8 @@ import bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from datetime import date
 from flask_cors import CORS
+from datetime import datetime
+from sqlalchemy import func
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -41,7 +43,8 @@ def register():
     db.session.commit()
 
     return jsonify({'success': 'new user created'}), 201
-    
+
+
 @app.route('/api/login', methods=["POST"])
 def login():
     response = request.get_json()
@@ -59,13 +62,55 @@ def login():
 # LOGIN REQUIRED ROUTES
     
 # GET EXPENSES
+PER_PAGE = 10
 @app.route('/api/expenses', methods=["GET"])
 @jwt_required()
 def get_expense():
     user_id = int(get_jwt_identity())
-    expenses = db.session.execute(db.select(Expense).where(Expense.user_id == user_id)).scalars().all()
+    query = db.select(Expense).where(Expense.user_id == user_id)
+    
+    category = request.args.get('category')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
 
-    return jsonify([expense.to_dict() for expense in expenses]), 200
+    if category:
+        query = query.where(Expense.category == category)
+
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            query = query.where(Expense.expense_date >= start_date)
+        except ValueError:
+            return jsonify({"error": "invalid format"}), 400
+
+
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            query = query.where(Expense.expense_date <= end_date)
+        except ValueError:
+            return jsonify({"error": "invalid format"}), 400
+        
+    # total results from query
+    total = db.session.scalar(db.select(func.count()).select_from(query.subquery()))
+    try:
+        page = int(request.args.get('page', 1))
+        if page < 1:
+            raise ValueError
+    except ValueError:
+        return jsonify({"error": "page must be a positive integer"}), 400
+    
+    query = query.limit(PER_PAGE).offset((page - 1) * PER_PAGE)
+    expenses = db.session.execute(query).scalars().all()
+
+    return jsonify({"expenses": [expense.to_dict() for expense in expenses], 
+                    "pagination": {
+                        "page": page,
+                        "per_page": PER_PAGE,
+                        "total": total,
+                        "total_pages": (total + PER_PAGE - 1) // PER_PAGE
+                    }
+                    }), 200
 
 @app.route('/api/expenses/<int:expense_id>', methods=['GET'])
 @jwt_required()
