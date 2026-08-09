@@ -92,6 +92,7 @@ def get_expense():
             return jsonify({"error": "invalid format"}), 400
         
     # total results from query
+    query = query.order_by(Expense.created_at.desc())
     total = db.session.scalar(db.select(func.count()).select_from(query.subquery()))
     try:
         page = int(request.args.get('page', 1))
