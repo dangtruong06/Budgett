@@ -58,7 +58,7 @@ def create_app(config_class=Config):
         if user and bcrypt.checkpw(input_password.encode('utf-8'), user.password_hash.encode('utf-8')):
             access_token = create_access_token(identity=str(user.id))
             return jsonify({'access_token': access_token}), 200
-        else:
+        else: 
             return jsonify({'error': 'unauthorized'}), 401
 
     # LOGIN REQUIRED ROUTES
@@ -166,7 +166,7 @@ def create_app(config_class=Config):
         expense = db.get_or_404(Expense, expense_id)
 
         if expense.user_id != user_id:
-            return jsonify({'error': 'unauthorize'}), 403
+            return jsonify({'error': 'unauthorized'}), 403
         
         post_body = request.get_json()
         expense.name = post_body.get('name', expense.name)
@@ -187,7 +187,7 @@ def create_app(config_class=Config):
         expense = db.get_or_404(Expense, expense_id)
 
         if expense.user_id != user_id:
-            return jsonify({'error': 'unauthorize'}), 403
+            return jsonify({'error': 'unauthorized'}), 403
         
         db.session.delete(expense)
         db.session.commit()
