@@ -8,9 +8,7 @@ A full-stack expense tracker: Flask REST API + PostgreSQL on the backend, React 
 **Frontend** — React (Vite), React Router, Axios, Tailwind
 **Infra** — Docker Compose (backend, frontend, Postgres), GitHub Actions CI
 
-## Run it
-
-Only Docker required — no local Python, Node, or Postgres setup.
+## Run it - you will need Docker
 
 ```bash
 git clone https://github.com/dangtruong06/Budgett.git
@@ -19,7 +17,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Visit `http://localhost:8080`. Migrations run automatically on backend startup — nothing else to configure.
+Visit `http://localhost:8080`.
 
 **What's running:**
 - `frontend` — React build served by nginx, which reverse-proxies `/api` to the backend (no CORS needed)
