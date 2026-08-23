@@ -1,14 +1,18 @@
 # Budgett
 
-A full-stack expense tracker: Flask REST API + PostgreSQL on the backend, React on the frontend, fully containerized with Docker Compose.
+A full-stack expense tracker built with a **Flask REST API + PostgreSQL** backend and a **React** frontend, fully containerized with Docker Compose.
 
-## Stack
+## Tech Stack
 
-**Backend** — Python 3.12, Flask (app factory pattern), SQLAlchemy 2.0, PostgreSQL, Flask-Migrate, JWT auth, bcrypt, pytest
-**Frontend** — React (Vite), React Router, Axios, Tailwind
-**Infra** — Docker Compose (backend, frontend, Postgres), GitHub Actions CI
+| Layer              | Technologies                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| **Backend**        | Python, Flask, Google-OAuth, PostgreSQL, Flask-Migrate, JWT, bcrypt, pytest        |
+| **Frontend**       | React, Vite, React Router, Axios, Tailwind CSS                                     |
+| **Infrastructure** | Docker Compose, Nginx, GitHub Actions CI                                           |
 
-## Run it - you will need Docker
+## Getting Started
+
+> **Prerequisite:** Docker must be installed.
 
 ```bash
 git clone https://github.com/dangtruong06/Budgett.git
@@ -17,22 +21,35 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Visit `http://localhost:8080`.
+Once the containers are running, open:
 
-**What's running:**
-- `frontend` — React build served by nginx, which reverse-proxies `/api` to the backend (no CORS needed)
-- `backend` — Flask + gunicorn, runs `flask db upgrade` before boot
-- `db` — Postgres with a persistent volume and healthcheck; backend waits for it to actually accept connections, not just for the container to start
+**http://localhost:8080**
 
-## API
+### Docker Services
 
-| Method | Route | Notes |
-|---|---|---|
-| POST | `/api/register` | |
-| POST | `/api/login` | Returns JWT |
-| GET | `/api/expenses` | `?category=&start_date=&end_date=&page=` |
-| GET/PUT/DELETE | `/api/expenses/<id>` | Ownership-checked — 403 if it's not yours |
-| POST | `/api/expenses` | |
+* **`frontend`** — React production build served by Nginx. Reverse-proxies `/api` requests to the backend, eliminating the need for CORS.
+* **`backend`** — Flask application served with Gunicorn. Runs database migrations with `flask db upgrade` before starting.
+* **`db`** — PostgreSQL database with a persistent volume and healthcheck. The backend waits for PostgreSQL to accept connections before starting.
+
+## 📡 API
+
+| Method   | Endpoint             | Description                                              |
+| -------- | -------------------- | -------------------------------------------------------- |
+| `POST`   | `/api/register`      | Register a new user                                      |
+| `POST`   | `/api/login`         | Authenticate and receive a JWT                           |
+| `GET`    | `/api/expenses`      | Retrieve expenses with optional filtering and pagination |
+| `POST`   | `/api/expenses`      | Create a new expense                                     |
+| `GET`    | `/api/expenses/<id>` | Retrieve a specific expense                              |
+| `PUT`    | `/api/expenses/<id>` | Update a specific expense                                |
+| `DELETE` | `/api/expenses/<id>` | Delete a specific expense                                |
+
+### Expense Filtering
+
+```text
+/api/expenses?category=&start_date=&end_date=&page=
+```
+
+All expense operations are **ownership-checked**. Users cannot access or modify another user's expenses; unauthorized access returns `403 Forbidden`.
 
 ## Testing
 
@@ -41,46 +58,76 @@ cd backend
 pytest -v
 ```
 
-Runs against an isolated in-memory SQLite DB (`TestConfig`) — never touches real data. Covers auth (success/failure), full CRUD per route (success/404/403), and category/date-range filtering. Two-user fixtures (`auth_headers`/`other_auth_headers`) specifically test that users can't touch each other's expenses.
+The test suite runs against an isolated **in-memory SQLite database** using `TestConfig`, so production data is never touched.
 
-CI runs this suite on every push and PR via GitHub Actions.
+Tests cover:
 
-## Local dev (without Docker)
+* Authentication success and failure cases
+* Full expense CRUD functionality
+* `404 Not Found` handling
+* `403 Forbidden` ownership checks
+* Category filtering
+* Date-range filtering
+* Multi-user authorization scenarios
 
-**Backend**
+Two-user fixtures (`auth_headers` and `other_auth_headers`) specifically verify that users cannot access each other's expenses.
+
+**GitHub Actions CI** automatically runs the test suite on every push and pull request.
+
+## Local Development
+
+### Backend
+
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt --break-system-packages
 ```
-Create `backend/.env` from `.env.example`, then:
+
+Create `backend/.env` from `.env.example`, then run:
+
 ```bash
 flask db upgrade
-python main.py   # http://localhost:5001
+python main.py
 ```
 
-**Frontend**
+Backend runs at:
+
+**http://localhost:5001**
+
+### Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Structure
-backend/
-├── main.py # app factory, routes
-├── models.py # User, Expense
-├── extensions.py # db = SQLAlchemy(), kept separate to avoid circular imports
-├── config.py # Config (dev/prod) + TestConfig (in-memory SQLite)
-├── entrypoint.sh # runs migrations, then starts gunicorn
-├── migrations/
-└── tests/
+## Project Structure
 
-frontend/src/
-├── api/axios.js # JWT auto-attached via interceptor
-├── context/AuthContext.jsx
-├── pages/ # Landing, Login, Register, Dashboard, ExpenseForm
-└── components/ # Navbar, ProtectedRoute
-
-.github/workflows/ # CI
-docker-compose.yml
+```text
+Budgett/
+├── backend/
+│   ├── main.py                  # App factory and routes
+│   ├── models.py                # User and Expense models
+│   ├── extensions.py            # SQLAlchemy instance
+│   ├── config.py                # Development, production, and test configs
+│   ├── entrypoint.sh            # Runs migrations and starts Gunicorn
+│   ├── migrations/              # Database migrations
+│   └── tests/                   # Backend test suite
+│
+├── frontend/
+│   └── src/
+│       ├── api/
+│       │   └── axios.js         # Axios client with JWT interceptor
+│       ├── context/
+│       │   └── AuthContext.jsx  # Authentication state
+│       ├── pages/                # Landing, Login, Register, Dashboard, ExpenseForm
+│       └── components/           # Navbar, ProtectedRoute
+│
+├── .github/
+│   └── workflows/               # GitHub Actions CI
+│
+└── docker-compose.yml
+```
