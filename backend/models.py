@@ -8,7 +8,8 @@ class User(db.Model):
 
     id:Mapped[int] = mapped_column(primary_key=True)
     email:Mapped[str] = mapped_column(String(250), unique=True, nullable=False)
-    password_hash:Mapped[str] = mapped_column(String(250), nullable=False)
+    password_hash:Mapped[str | None] = mapped_column(String(250), nullable=True)
+    google_id:Mapped[str | None ] = mapped_column(String(250), unique=True, nullable=True )
 
     #relationship
     expenses:Mapped[list["Expense"]] = relationship(

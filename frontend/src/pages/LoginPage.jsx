@@ -3,6 +3,7 @@ import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar'
+import { GoogleLogin } from '@react-oauth/google';
 
 function LoginPage(){
     const [email, setEmail] = useState('');
@@ -23,6 +24,18 @@ function LoginPage(){
             setError(error.response?.data?.error || 'Something went wrong. Please try again.');
         }
 
+    };
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setError('');
+        try {
+            const response = await api.post('/auth/google', {
+                credential: credentialResponse.credential
+            });
+            login(response.data.access_token);
+            navigate('/dashboard');
+        } catch (error) {
+            setError(error.response?.data?.error || 'Google sign-in failed. Please try again.');
+        }
     };
 
     return (
@@ -62,6 +75,12 @@ function LoginPage(){
                             Log In
                         </button>
                     </form>
+                    <div className="mt-4 flex justify-center">
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => setError('Google sign-in failed. Please try again.')}
+                        />
+                    </div>
                     <p className="text-center text-sm text-gray-500 mt-6">
                         Don't have an account?{' '}
                         <Link to="/register" className="text-emerald-700 font-medium hover:underline">

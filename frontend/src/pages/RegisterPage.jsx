@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios'
 import Navbar from '../components/Navbar'
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../context/AuthContext'
 
 function RegisterPage(){
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
     const [error, setError] = useState('');
+    const { login } = useAuth();
 
     const handleRegister = async (e) => {
         e.preventDefault()
@@ -19,6 +22,18 @@ function RegisterPage(){
         }
         catch(error){
             setError(error.response?.data?.error || 'Something went wrong. Please try again.');     
+        }
+    };
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setError('');
+        try {
+            const response = await api.post('/auth/google', {
+                credential: credentialResponse.credential
+            });
+            login(response.data.access_token);
+            navigate('/dashboard');
+        } catch (error) {
+            setError(error.response?.data?.error || 'Google sign-in failed. Please try again.');
         }
     };
 
@@ -58,6 +73,12 @@ function RegisterPage(){
                             className="mt-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 cursor-pointer"
                         />
                     </form>
+                    <div className="mt-4 flex justify-center">
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => setError('Google sign-in failed. Please try again.')}
+                        />
+                    </div>
                     <p className="text-center text-sm text-gray-500 mt-6">
                         Already have an account?{' '}
                         <Link to="/login" className="text-emerald-700 font-medium hover:underline">

@@ -9,6 +9,8 @@ from datetime import date
 from flask_cors import CORS
 from datetime import datetime
 from sqlalchemy import func
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 def create_app(config_class=Config):
 
@@ -55,11 +57,47 @@ def create_app(config_class=Config):
 
         user = db.session.execute(db.select(User).where(User.email == input_email)).scalar()
 
-        if user and bcrypt.checkpw(input_password.encode('utf-8'), user.password_hash.encode('utf-8')):
+        if user and user.password_hash and bcrypt.checkpw(input_password.encode('utf-8'), user.password_hash.encode('utf-8')):
             access_token = create_access_token(identity=str(user.id))
             return jsonify({'access_token': access_token}), 200
         else: 
             return jsonify({'error': 'unauthorized'}), 401
+
+    GOOGLE_CLIENT_ID = '605039480451-79spfo1apkqvfo2foq6aq6t59002osob.apps.googleusercontent.com'
+    @app.route('/api/auth/google', methods=["POST"])
+    def google_auth():
+        body = request.get_json()
+        credential = body.get('credential')
+
+        if not credential:
+            return jsonify({'error': 'missing credentials'}), 400
+        
+        try:
+            idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), GOOGLE_CLIENT_ID)
+        except ValueError:
+            return jsonify({'error': 'invalid token'}), 401
+        
+        google_id = idinfo.get('sub')
+        email = idinfo.get('email')
+
+        user = db.session.execute(db.select(User).where(User.google_id == google_id)).scalar()
+        
+        if not user:
+            existing = db.session.execute(db.select(User).where(User.email == email)).scalar()
+
+            if existing:    # if user exists and password
+                if existing.password_hash:
+                    return jsonify({'error': 'email is already registered with password'}), 409 
+
+
+            # step 6: if email not found in db, make new user
+            user = User(email=email, google_id=google_id, password_hash=None)
+            db.session.add(user)
+            db.session.commit()
+
+        access_token = create_access_token(identity=str(user.id))
+        return jsonify({'access_token': access_token}), 200
+
 
     # LOGIN REQUIRED ROUTES
         
